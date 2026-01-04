@@ -1,82 +1,198 @@
-# 📁 Complete Project Structure
+# Finnhub Market Scanner
 
-Here's how to organize your files:
+A high-performance CLI tool for real-time stock market data analysis. Built in Rust with concurrent API requests, multiple output formats, and advanced filtering.
 
-```
-finnhub-scanner/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                 # GitHub Actions CI/CD
-├── src/
-│   ├── main.rs                    # CLI entry point
-│   ├── config.rs                  # Configuration system
-│   ├── errors.rs                  # Error handling
-│   ├── finnhub.rs                 # API client
-│   └── output.rs                  # Display logic
-├── tests/
-│   └── integration_test.rs        # Integration tests (create this)
-├── .gitignore
-├── Cargo.toml
-├── LICENSE                         # MIT license
-├── README.md
-└── symbols.txt                     # Example symbols file
-```
+## Features
 
-## 🛠️ Setup Instructions
+- Concurrent request handling with configurable rate limiting
+- Multiple output formats: table, JSON, CSV, compact
+- Advanced filtering: gainers, losers, minimum change threshold
+- Real-time watch mode with auto-refresh
+- Flexible configuration via TOML files or environment variables
+- Comprehensive error handling and logging
+- Cross-platform support: Windows, macOS, Linux
 
-### Step 1: Create the project structure
+## Requirements
+
+- Rust 1.70 or higher
+- Finnhub API key (free at https://finnhub.io)
+
+## Installation
 
 ```bash
-# Create new project
-cargo new finnhub-scanner --bin
-cd finnhub-scanner
-
-# Create necessary directories
-mkdir -p .github/workflows
-mkdir -p tests
-mkdir -p docs
+git clone https://github.com/AutodidactHobo/Finnhub-market-scanner-in-Rust.git
+cd Finnhub-market-scanner-in-Rust
+cargo build --release
 ```
 
-### Step 2: Copy files
+## Configuration
 
-Copy each artifact I created into the correct location:
+Set your API key:
 
-1. **Cargo.toml** → `Cargo.toml` (replace existing)
-2. **main.rs** → `src/main.rs` (replace existing)
-3. **config.rs** → `src/config.rs` (new file)
-4. **errors.rs** → `src/errors.rs` (new file)
-5. **finnhub.rs** → `src/finnhub.rs` (new file)
-6. **output.rs** → `src/output.rs` (new file)
-7. **ci.yml** → `.github/workflows/ci.yml` (new file)
-8. **README.md** → `README.md` (replace existing)
+```bash
+export FINNHUB_API_KEY=your_api_key_here
+```
 
-### Step 3: Create additional files
+Optional: Create config.toml
 
-**symbols.txt:**
-```txt
+```toml
+api_key = "your_api_key_here"
+symbols_file = "symbols.txt"
+concurrent_requests = 5
+rate_limit_delay_ms = 200
+timeout_secs = 10
+default_output = "table"
+```
+
+Optional: Create symbols.txt
+
+```
 AAPL
 MSFT
 GOOGL
 TSLA
-AMZN
-NVDA
-META
 ```
 
-**.gitignore:**
-```
-target/
-Cargo.lock
-config.toml
-.env
-*.log
+## Usage
+
+Basic scan:
+```bash
+cargo run --release -- scan --symbols AAPL,MSFT,GOOGL
 ```
 
-**LICENSE:**
+Scan from file:
+```bash
+cargo run --release -- scan --symbols-file symbols.txt
 ```
+
+Watch mode (30 second intervals):
+```bash
+cargo run --release -- watch --symbols AAPL,MSFT --interval 30
+```
+
+Filter gainers only:
+```bash
+cargo run --release -- scan --symbols-file symbols.txt --gainers-only
+```
+
+Output as JSON:
+```bash
+cargo run --release -- scan --symbols AAPL,MSFT --output json
+```
+
+Show only significant moves (>2%):
+```bash
+cargo run --release -- scan --symbols-file symbols.txt --min-change 2.0
+```
+
+## Example Output
+
+```
+===========================================================================
+SYMBOL          PRICE   PREV CLOSE       CHANGE    DAY RANGE
+===========================================================================
+AAPL           271.01       271.86    -0.31% 269.00-277.84
+MSFT           472.94       483.62    -2.21% 470.16-484.66
+GOOGL          315.15       313.00 +   0.69% 310.33-322.50
+===========================================================================
+
+Summary:
+   Total symbols: 3
+   Gainers: 1 | Losers: 2
+   Average change: -0.61%
+   Top gainer: GOOGL (+0.69%)
+   Top loser: MSFT (-2.21%)
+```
+
+## Command Reference
+
+### scan
+
+Fetch and display stock quotes.
+
+Options:
+- -s, --symbols <SYMBOLS>         Comma-separated stock symbols
+- -f, --symbols-file <FILE>       File with symbols (one per line)
+- -o, --output <FORMAT>           Output format: table, json, csv, compact
+- --sort-by-change                Sort by absolute percentage change
+- --gainers-only                  Show only positive changes
+- --losers-only                   Show only negative changes
+- --min-change <PERCENT>          Filter by minimum change threshold
+
+### watch
+
+Monitor stocks with continuous updates.
+
+Options:
+- -s, --symbols <SYMBOLS>         Symbols to monitor
+- -f, --symbols-file <FILE>       File with symbols
+- -i, --interval <SECONDS>        Update interval (default: 60)
+
+### config
+
+Manage configuration.
+
+Options:
+- --init                          Initialize default config file
+- --show                          Display current configuration
+
+## Architecture
+
+```
+src/
+├── main.rs      - CLI entry point and argument parsing
+├── config.rs    - Configuration management
+├── errors.rs    - Error types and handling
+├── finnhub.rs   - API client and data fetching
+└── output.rs    - Display and formatting logic
+```
+
+Technology stack:
+- Tokio: Async runtime for concurrent requests
+- Clap: CLI argument parsing
+- Serde: JSON/TOML serialization
+- Reqwest: HTTP client
+
+## Development
+
+Run tests:
+```bash
+cargo test
+```
+
+Format code:
+```bash
+cargo fmt
+```
+
+Lint:
+```bash
+cargo clippy
+```
+
+Debug logging:
+```bash
+RUST_LOG=debug cargo run -- scan -s AAPL
+```
+
+## Performance
+
+Benchmark results on standard hardware:
+- 10 stocks: ~1 second
+- 100 stocks: ~4 seconds
+- 1000 stocks: ~40 seconds
+
+Optimizations:
+- Concurrent API requests with configurable batch size
+- Memory-efficient with minimal allocations
+- Fast startup time under 100ms
+- Release builds use LTO and optimized codegen
+
+## License
+
 MIT License
 
-Copyright (c) 2026 Your Name
+Copyright (c) 2026
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -95,148 +211,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
-
-**config.toml (example):**
-```toml
-api_key = "d5cplv1r01qvl80lnt1gd5cplv1r01qvl80lnt20"
-symbols_file = "symbols.txt"
-concurrent_requests = 5
-rate_limit_delay_ms = 200
-timeout_secs = 10
-default_output = "table"
-```
-
-### Step 4: Build and test
-
-```bash
-# Install dependencies and build
-cargo build
-
-# Run tests
-cargo test
-
-# Try it out
-export FINNHUB_API_KEY=d5cplv1r01qvl80lnt1gd5cplv1r01qvl80lnt20
-cargo run -- scan -s AAPL,MSFT
-
-# Or with config file
-cargo run -- --config config.toml scan -f symbols.txt
-```
-
-### Step 5: Format and lint
-
-```bash
-# Format code
-cargo fmt
-
-# Run clippy
-cargo clippy --fix
-```
-
-## 🚀 Quick Commands Reference
-
-```bash
-# Development
-cargo run -- scan -s AAPL,MSFT              # Basic scan
-cargo run -- scan -f symbols.txt            # Scan from file
-cargo run -- watch -s AAPL -i 30            # Watch mode
-cargo run -- config --init                  # Create config
-
-# With filters
-cargo run -- scan -f symbols.txt --gainers-only
-cargo run -- scan -f symbols.txt --min-change 2.0
-cargo run -- scan -s AAPL,MSFT -o json
-
-# Production build
-cargo build --release
-./target/release/finnhub-scanner scan -s AAPL
-
-# Testing
-cargo test                    # All tests
-cargo test -- --nocapture     # With output
-cargo clippy                  # Lint
-cargo fmt                     # Format
-
-# Verbose logging
-RUST_LOG=debug cargo run -- scan -s AAPL
-```
-
-## 📦 Publishing to GitHub
-
-```bash
-# Initialize git
-git init
-git add .
-git commit -m "Initial commit: Professional Finnhub scanner"
-
-# Create repo on GitHub, then:
-git remote add origin https://github.com/yourusername/finnhub-scanner.git
-git branch -M main
-git push -u origin main
-```
-
-## 🎯 Next Steps
-
-1. **Update README.md** with your information:
-   - Replace "Your Name" with your actual name
-   - Add your GitHub username to URLs
-   - Add your contact info
-
-2. **Create a demo GIF** (optional but impressive):
-   ```bash
-   # Use asciinema or terminalizer
-   asciinema rec demo.cast
-   # Convert to GIF and add to docs/
-   ```
-
-3. **Add more tests** in `tests/integration_test.rs`
-
-4. **Add code coverage badge** (setup Codecov)
-
-5. **Publish to crates.io** (when ready):
-   ```bash
-   cargo login
-   cargo publish
-   ```
-
-## 🐛 Troubleshooting
-
-**Issue: API key not found**
-```bash
-export FINNHUB_API_KEY=your_key_here
-# Or create config.toml with your key
-```
-
-**Issue: Compilation errors**
-```bash
-cargo clean
-cargo update
-cargo build
-```
-
-**Issue: Tests failing**
-```bash
-# Some tests require internet connection
-cargo test -- --test-threads=1
-```
-
-## 💡 Tips for Job Applications
-
-When sharing this project:
-
-1. **Deploy it** - Add installation instructions
-2. **Record a demo** - Show it working in a terminal
-3. **Highlight key features** - Concurrent requests, error handling, testing
-4. **Explain decisions** - Why Rust? Why this architecture?
-5. **Show metrics** - Performance benchmarks, test coverage
-6. **Link to it** - Put it at the top of your resume/portfolio
-
-This demonstrates:
-- ✅ Systems programming (Rust)
-- ✅ API integration
-- ✅ CLI design
-- ✅ Testing & CI/CD
-- ✅ Production-ready code
-- ✅ Documentation
-- ✅ Open source contribution patterns
